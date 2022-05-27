@@ -37,7 +37,6 @@ export async function getGames(req, res) {
 
     const { name } = req.query;
     const filter = name ? `WHERE upper(name) LIKE '%${name.toUpperCase()}%'` : ``;
-    console.log(filter);
 
     try {
         const result = await db.query(`SELECT * FROM games ${filter};`);

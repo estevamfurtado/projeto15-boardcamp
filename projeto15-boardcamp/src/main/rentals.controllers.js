@@ -2,36 +2,93 @@ import db from '../db.js';
 import Joi from "joi";
 import dayjs from 'dayjs';
 
+// SCHEMA
+
 const RentalSchema = Joi.object({
     customerId: Joi.number().required(),
     gameId: Joi.number().required(),
-    daysRented: Joi.number().required()
+    daysRented: Joi.number().min(1).required()
 });
 
-export function validateRentalBody(req, res, next) {
+// MIDDLEWARES
+
+export async function validateRentalBody(req, res, next) {
     const rental = req.body;
-    console.log('rental', rental);
     const { error } = RentalSchema.validate(rental);
+
     if (error) {
-        console.log('erro: ->', error.details)
-        return res.status(422).send({ error: error.details });
+        return res.status(400).send({ error: error.details });
+    }
+
+    const { customerId, gameId } = rental;
+    const costumerResponse = await db.query(`SELECT * FROM customers WHERE id=${customerId};`);
+    const gameResponse = await db.query(`SELECT * FROM games WHERE id=${gameId};`);
+    const customer = costumerResponse.rows[0];
+    const game = gameResponse.rows[0];
+
+    if (!customer || !game) {
+        return res.sendStatus(400);
+    }
+
+    const rentalsResponse = await db.query(`SELECT * FROM rentals WHERE "gameId"=${gameId} AND "returnDate"=null;`);
+    console.log(rentalsResponse.rows.length);
+
+    if (rentalsResponse.rows.length > game.stockTotal) {
+        return res.sendStatus(400);
+    }
+
+    res.locals.game = game;
+
+    next();
+}
+
+export async function validateRentalId(req, res, next) {
+    const { id } = req.params;
+    const result = await db.query(`SELECT * FROM rentals WHERE id=${id}`);
+    if (result.rows.length === 0) {
+        return res.sendStatus(404);
     }
     next();
 }
 
+// CONTROLLERS
 
 export async function getRentals(req, res) {
+
+    // Filter & Query String
+    const { customerId, gameId } = req.query;
+
+    const customerFilter = customerId ? `"customerId"=${customerId}` : "";
+    const gameFilter = gameId ? `"gameId"=${gameId}` : "";
+    const filter = (customerId || gameId) ? `WHERE ${customerFilter}${(customerId && gameId) ? " AND " : ""}${gameFilter}` : "";
+    let query = `
+        SELECT rentals.*, 
+            customers.name AS "customerName",
+            games.id AS "gameId",
+            games.name AS "gameName",
+            categories.id AS "categoryId",
+            categories.name AS "categoryName"
+        FROM rentals 
+            JOIN customers ON rentals."customerId"=customers.id
+            JOIN games ON rentals."gameId"=games.id
+            JOIN categories ON games."categoryId" = categories.id;
+        ${filter};`;
+
     try {
-        const result = await db.query('SELECT * FROM rentals');
-        console.log('result', result.rows);
-        res.send(result.rows)
+        const result = await db.query(query);
+        const rentalsResult = result.rows;
+        const rentals = rentalsResult.map(r => {
+            return createRentalObject(r);
+        })
+        res.send(rentals);
     } catch (e) {
-        console.log(e);
         res.status(500).send('Não foi possível enviar rentals')
     }
 }
 
 export async function postRental(req, res) {
+
+    const { game } = res.locals;
     const { customerId, gameId, daysRented } = req.body;
 
     const rental = {
@@ -40,7 +97,7 @@ export async function postRental(req, res) {
         rentDate: dayjs().format('YYYY-MM-DD'),
         daysRented: daysRented,
         returnDate: null,
-        originalPrice: daysRented * 5000,       // preço total do aluguel em centavos (dias alugados vezes o preço por dia do jogo)
+        originalPrice: game.pricePerDay * daysRented,       // preço total do aluguel em centavos (dias alugados vezes o preço por dia do jogo)
         delayFee: null             // multa total paga por atraso (dias que passaram do prazo vezes o preço por dia do jogo)
     }
 
@@ -66,9 +123,8 @@ export async function postRental(req, res) {
 
     try {
         const query = `INSERT INTO rentals (${columns}) VALUES (${values});`
-        console.log(query);
         const result = await db.query(query);
-        res.status(201).sendStatus(200);
+        res.status(201).sendStatus(201);
     } catch (e) {
         res.status(500).send('Não foi possível salvar rental')
     }
@@ -76,7 +132,6 @@ export async function postRental(req, res) {
 
 export async function returnRentalById(req, res) {
     const { id } = req.params;
-    console.log('aqui', id);
     try {
         let query = `SELECT * FROM rentals WHERE id=${id};`
         let result = await db.query(query);
@@ -120,41 +175,29 @@ export function getRentalsMetrics(req, res) { }
 
 
 
-// -----------------------------
+// UTILS
 
-
-export async function getCostumerById(req, res) {
-    const { id } = req.params;
-    try {
-        const result = await db.query(`SELECT * FROM customers WHERE id=${id}`);
-        res.send(result.rows[0]);
-    } catch (e) {
-        console.log(e);
-        res.status(500).send(`Não foi possível enviar customer com id${id}`)
+function createRentalObject(r) {
+    const rental = {
+        id: r.id,
+        customerId: r.costumerId,
+        gameId: r.gameId,
+        rentDate: r.rentDate,
+        daysRented: r.daysRented,
+        returnDate: r.returnDate, // troca pra uma data quando já devolvido
+        originalPrice: r.originalPrice,
+        delayFee: r.delayFee,
+        customer: {
+            id: r.customerId,
+            name: r.customerName
+        },
+        game: {
+            id: r.gameId,
+            name: r.gameName,
+            categoryId: r.categoryId,
+            categoryName: r.categoryName
+        }
     }
+    return rental;
 }
-
-export async function updateCostumerById(req, res) {
-
-    const { id } = req.params;
-    const { name, phone, cpf, birthday } = req.body;
-
-    const values = [
-        `name='${name}'`,
-        `phone='${phone}'`,
-        `cpf='${cpf}'`,
-        `birthday='${birthday}'`
-    ].join(', ')
-
-    try {
-        const query = `UPDATE customers SET ${values} WHERE id=${id};`
-        const result = await db.query(query);
-        res.sendStatus(200);
-    } catch (e) {
-        // console.log(e);
-        res.status(500).send('Não foi possível salvar customers')
-    }
-}
-
-
 
