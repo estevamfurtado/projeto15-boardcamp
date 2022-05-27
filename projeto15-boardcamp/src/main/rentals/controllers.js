@@ -5,13 +5,21 @@ import dayjs from 'dayjs';
 
 export async function getRentals(req, res) {
 
-    // Filter & Query String
-    const { customerId, gameId } = req.query;
-    console.log(customerId, gameId);
+    const { customerId, gameId, offset, limit, order, desc, status, startDate } = req.query;
 
-    const customerFilter = customerId ? `"customerId"=${customerId}` : "";
-    const gameFilter = gameId ? `"gameId"=${gameId}` : "";
-    const filter = (customerId || gameId) ? `WHERE ${customerFilter}${(customerId && gameId) ? " AND " : ""}${gameFilter}` : "";
+    const offsetQuery = offset ? `OFFSET ${offset}` : '';
+    const limitQuery = limit ? `LIMIT ${limit}` : '';
+    const orderQuery = (order && order === 'true') ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
+
+    // filterQueries
+    const customerFilter = customerId ? `"customerId"=${customerId}` : '';
+    const gameFilter = gameId ? `"gameId"=${gameId}` : '';
+    const startDateQuery = startDate ? `"rentDate">='${startDate}'` : '';
+    const statusQuery = status ? (status === 'open' ? `"returnData" IS NULL` : (status === 'closed' ? `"returnData" IS NOT NULL` : '')) : '';
+
+    const filters = [customerFilter, gameFilter, statusQuery, startDateQuery].filter(f => f !== '');
+    const filtersQuery = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
     let query = `
         SELECT rentals.*, 
             customers.name AS "customerName",
@@ -23,7 +31,7 @@ export async function getRentals(req, res) {
             JOIN customers ON rentals."customerId"=customers.id
             JOIN games ON rentals."gameId"=games.id
             JOIN categories ON games."categoryId" = categories.id
-        ${filter};`;
+        ${filtersQuery};`;
 
     try {
         const result = await db.query(query);
@@ -110,7 +118,6 @@ export async function deleteRentalById(req, res) {
 }
 
 export function getRentalsMetrics(req, res) { }
-
 
 
 // UTILS ----------

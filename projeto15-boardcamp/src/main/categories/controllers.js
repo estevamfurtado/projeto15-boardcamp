@@ -1,8 +1,14 @@
 import db from '../../db.js';
 
 export async function getCategories(req, res) {
+
+    const { offset, limit, order, desc } = req.query;
+    const offsetQuery = offset ? `OFFSET ${offset}` : '';
+    const limitQuery = limit ? `LIMIT ${limit}` : '';
+    const orderQuery = order ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
+
     try {
-        const result = await db.query('SELECT * FROM categories');
+        const result = await db.query(`SELECT * FROM categories ${offsetQuery} ${limitQuery} ${orderQuery};`);
         res.send(result.rows)
     } catch (e) {
         console.log(e);

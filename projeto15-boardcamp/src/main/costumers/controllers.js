@@ -3,10 +3,16 @@ import dayjs from 'dayjs';
 
 
 export async function getCostumers(req, res) {
-    const { cpf } = req.query;
+
+    const { cpf, offset, limit, order, desc } = req.query;
+    const offsetQuery = offset ? `OFFSET ${offset}` : '';
+    const limitQuery = limit ? `LIMIT ${limit}` : '';
+    const orderQuery = order ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
+
+
     const filter = cpf ? `WHERE cpf LIKE '%${cpf}%'` : ``;
     try {
-        const result = await db.query(`SELECT * FROM customers ${filter};`);
+        const result = await db.query(`SELECT * FROM customers ${filter} ${offsetQuery} ${limitQuery} ${orderQuery};`);
         res.send(result.rows)
     } catch (e) {
         res.status(500).send('Não foi possível enviar customers')
@@ -16,7 +22,7 @@ export async function getCostumers(req, res) {
 export async function getCostumerById(req, res) {
     const { id } = req.params;
     try {
-        const result = await db.query(`SELECT * FROM customers WHERE id=${id}`);
+        const result = await db.query(`SELECT * FROM customers WHERE id=${id};`);
         res.send(result.rows[0]);
     } catch (e) {
         res.status(500).send(`Não foi possível enviar customer com id${id}`)

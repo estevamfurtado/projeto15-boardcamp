@@ -2,7 +2,11 @@ import db from '../../db.js';
 
 export async function getGames(req, res) {
 
-    const { name } = req.query;
+    const { name, offset, limit, order, desc } = req.query;
+    const offsetQuery = offset ? `OFFSET ${offset}` : '';
+    const limitQuery = limit ? `LIMIT ${limit}` : '';
+    const orderQuery = order ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
+
     const filter = name ? `WHERE upper(name) LIKE '%${name.toUpperCase()}%'` : ``;
 
     try {
@@ -10,7 +14,7 @@ export async function getGames(req, res) {
             SELECT games.*, categories.name AS "categoryName"
             FROM games
             JOIN categories ON games."categoryId"=categories.id
-            ${filter};
+            ${filter} ${offsetQuery} ${limitQuery} ${orderQuery};
         `;
         const result = await db.query(query);
         res.send(result.rows)
