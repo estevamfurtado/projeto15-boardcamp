@@ -117,7 +117,28 @@ export async function deleteRentalById(req, res) {
     }
 }
 
-export function getRentalsMetrics(req, res) { }
+export async function getRentalsMetrics(req, res) {
+
+    const { startDate, endDate } = req.query;
+    const startDateQuery = startDate ? `"rentDate">='${startDate}'` : '';
+    const endDateQuery = endDate ? `"rentDate"<='${endDate}'` : '';
+    const filters = [startDateQuery, endDateQuery].filter(f => f !== '');
+    const filterQueries = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+    try {
+        const revenueQuery = `SELECT SUM("originalPrice" + "delayFee") FROM rentals ${filterQueries};`
+        const result = await db.query(revenueQuery);
+        const revenue = Number(result.rows[0].sum);
+
+        const rentalsQuery = `SELECT COUNT(id) FROM rentals ${filterQueries};`
+        const rentResult = await db.query(rentalsQuery);
+        const rentals = Number(rentResult.rows[0].count);
+
+        res.send({ revenue, rentals, average: revenue / rentals });
+    } catch (error) {
+        res.status(500).send('Não foi possível enviar metrics');
+    }
+}
 
 
 // UTILS ----------

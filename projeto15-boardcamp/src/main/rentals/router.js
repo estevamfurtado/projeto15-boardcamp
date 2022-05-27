@@ -8,6 +8,6 @@ router.get('/', getRentals);
 router.post('/', validateRentalBody, postRental);
 router.post('/:id/return', validateRentalId, validateRentalIsNotReturned, returnRentalById);
 router.delete('/:id', validateRentalId, validateRentalIsNotReturned, deleteRentalById);
-router.get('/rentals/metrics', getRentalsMetrics);
+router.get('/metrics', getRentalsMetrics);
 
 export default router;
