@@ -1,50 +1,6 @@
-import db from '../db.js';
-import Joi from "joi";
+import db from '../../db.js';
 import dayjs from 'dayjs';
 
-// MODELS
-
-const CostumerSchema = Joi.object({
-    name: Joi.string().required().messages({
-        "name": "Not a valid name",
-    }),
-    phone: Joi.string().min(10).max(11).pattern(/^[0-9]+$/).required().messages({
-        "phone": "Not a valid phone",
-    }),
-    cpf: Joi.string().length(10).pattern(/^[0-9]+$/).required().messages({
-        "cpf": "Not a valid cpf",
-    }),
-    birthday: Joi.date().iso().required().messages({
-        "birthday": "Not a valid birthday",
-    })
-});
-
-// MIDDLEWARES
-
-export async function validateCostumerBody(req, res, next) {
-    const costumer = req.body;
-    const { error } = CostumerSchema.validate(costumer);
-    if (error) {
-        console.log(error.details);
-        return res.status(400).send({ error: error.details });
-    }
-    const result = await db.query(`SELECT * FROM customers WHERE cpf='${costumer.cpf}'`);
-    if (result.rows.length > 0) {
-        return res.sendStatus(409);
-    }
-    next();
-}
-
-export async function validateCostumerId(req, res, next) {
-    const { id } = req.params;
-    const result = await db.query(`SELECT * FROM customers WHERE id=${id};`);
-    if (result.rows.length === 0) {
-        return res.sendStatus(404);
-    }
-    next();
-}
-
-// CONTROLLERS
 
 export async function getCostumers(req, res) {
     const { cpf } = req.query;
@@ -104,6 +60,7 @@ export async function updateCostumerById(req, res) {
 
     try {
         const query = `UPDATE customers SET ${values} WHERE id=${id};`
+        console.log(query)
         const result = await db.query(query);
         res.sendStatus(200);
     } catch (e) {

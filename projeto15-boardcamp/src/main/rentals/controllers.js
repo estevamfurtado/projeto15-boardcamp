@@ -1,62 +1,13 @@
-import db from '../db.js';
-import Joi from "joi";
+import db from '../../db.js';
 import dayjs from 'dayjs';
 
-// SCHEMA
 
-const RentalSchema = Joi.object({
-    customerId: Joi.number().required(),
-    gameId: Joi.number().required(),
-    daysRented: Joi.number().min(1).required()
-});
-
-// MIDDLEWARES
-
-export async function validateRentalBody(req, res, next) {
-    const rental = req.body;
-    const { error } = RentalSchema.validate(rental);
-
-    if (error) {
-        return res.status(400).send({ error: error.details });
-    }
-
-    const { customerId, gameId } = rental;
-    const costumerResponse = await db.query(`SELECT * FROM customers WHERE id=${customerId};`);
-    const gameResponse = await db.query(`SELECT * FROM games WHERE id=${gameId};`);
-    const customer = costumerResponse.rows[0];
-    const game = gameResponse.rows[0];
-
-    if (!customer || !game) {
-        return res.sendStatus(400);
-    }
-
-    const rentalsResponse = await db.query(`SELECT * FROM rentals WHERE "gameId"=${gameId} AND "returnDate"=null;`);
-    console.log(rentalsResponse.rows.length);
-
-    if (rentalsResponse.rows.length > game.stockTotal) {
-        return res.sendStatus(400);
-    }
-
-    res.locals.game = game;
-
-    next();
-}
-
-export async function validateRentalId(req, res, next) {
-    const { id } = req.params;
-    const result = await db.query(`SELECT * FROM rentals WHERE id=${id}`);
-    if (result.rows.length === 0) {
-        return res.sendStatus(404);
-    }
-    next();
-}
-
-// CONTROLLERS
 
 export async function getRentals(req, res) {
 
     // Filter & Query String
     const { customerId, gameId } = req.query;
+    console.log(customerId, gameId);
 
     const customerFilter = customerId ? `"customerId"=${customerId}` : "";
     const gameFilter = gameId ? `"gameId"=${gameId}` : "";
@@ -71,7 +22,7 @@ export async function getRentals(req, res) {
         FROM rentals 
             JOIN customers ON rentals."customerId"=customers.id
             JOIN games ON rentals."gameId"=games.id
-            JOIN categories ON games."categoryId" = categories.id;
+            JOIN categories ON games."categoryId" = categories.id
         ${filter};`;
 
     try {
@@ -131,56 +82,43 @@ export async function postRental(req, res) {
 }
 
 export async function returnRentalById(req, res) {
-    const { id } = req.params;
+    const { rental } = res.locals;
+
+    let returnDate = dayjs().format('YYYY-MM-DD');
+    let totalDays = dayjs(rental.rentDate).diff(dayjs(), 'days');
+    let delay = (totalDays > rental.daysRented) ? totalDays - rental.daysRented : 0;
+    let delayFee = delay * rental.originalPrice / rental.daysRented;
+
     try {
-        let query = `SELECT * FROM rentals WHERE id=${id};`
-        let result = await db.query(query);
-        let rental = result.rows[0];
-        let returnDate = dayjs().format('YYYY-MM-DD');
-
-        let returnDays = dayjs(rental.rentDate).diff(dayjs(), 'days');
-        let delay = (returnDays > rental.daysRented) ? returnDays - rental.daysRented : 0;
-        console.log(delay);
-        let delayFee = delay * 50000;
-        console.log(delayFee);
-        console.log(returnDate, delayFee);
-
-        query = `UPDATE rentals SET "returnDate"='${returnDate}', "delayFee"=${delayFee} WHERE id=${id};`
-
-        console.log(query);
-        result = await db.query(query);
-        console.log('feito')
-        res.sendStatus(201);
-    } catch (e) {
-        // console.log(e);
-        res.status(500).send('Não foi possível salvar rental')
+        const query = `UPDATE rentals SET "returnDate"='${returnDate}', "delayFee"=${delayFee} WHERE id=${rental.id};`
+        const result = await db.query(query);
+        res.sendStatus(200);
+    } catch (error) {
+        res.status(500).send('Não foi possível entregar rental')
     }
 }
 
 export async function deleteRentalById(req, res) {
-    const { id } = req.params;
-    console.log('aqui', id);
+    const { rental } = res.locals;
     try {
-        let query = `DELETE FROM rentals WHERE id=${id};`
-        result = await db.query(query);
-        console.log('feito');
+        let query = `DELETE FROM rentals WHERE id=${rental.id};`
+        const result = await db.query(query);
         res.sendStatus(201);
     } catch (e) {
-        // console.log(e);
         res.status(500).send('Não foi possível deletar rental')
     }
 }
+
 export function getRentalsMetrics(req, res) { }
 
 
 
-
-// UTILS
+// UTILS ----------
 
 function createRentalObject(r) {
     const rental = {
         id: r.id,
-        customerId: r.costumerId,
+        customerId: r.customerId,
         gameId: r.gameId,
         rentDate: r.rentDate,
         daysRented: r.daysRented,
