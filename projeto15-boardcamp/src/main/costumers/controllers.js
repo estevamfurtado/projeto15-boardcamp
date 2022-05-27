@@ -12,7 +12,7 @@ export async function getCostumers(req, res) {
 
     const filter = cpf ? `WHERE cpf LIKE '%${cpf}%'` : ``;
     try {
-        const result = await db.query(`SELECT * FROM customers ${filter} ${offsetQuery} ${limitQuery} ${orderQuery};`);
+        const result = await db.query(`SELECT * FROM customers ${filter} ${orderQuery} ${offsetQuery} ${limitQuery};`);
         res.send(result.rows)
     } catch (e) {
         res.status(500).send('Não foi possível enviar customers')

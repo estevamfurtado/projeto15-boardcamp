@@ -14,7 +14,7 @@ export async function getGames(req, res) {
             SELECT games.*, categories.name AS "categoryName"
             FROM games
             JOIN categories ON games."categoryId"=categories.id
-            ${filter} ${offsetQuery} ${limitQuery} ${orderQuery};
+            ${filter} ${orderQuery} ${offsetQuery} ${limitQuery};
         `;
         const result = await db.query(query);
         res.send(result.rows)

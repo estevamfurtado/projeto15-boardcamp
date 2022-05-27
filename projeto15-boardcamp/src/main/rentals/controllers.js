@@ -31,7 +31,7 @@ export async function getRentals(req, res) {
             JOIN customers ON rentals."customerId"=customers.id
             JOIN games ON rentals."gameId"=games.id
             JOIN categories ON games."categoryId" = categories.id
-        ${filtersQuery};`;
+        ${filtersQuery} ${orderQuery} ${offsetQuery} ${limitQuery};`;
 
     try {
         const result = await db.query(query);

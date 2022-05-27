@@ -8,7 +8,7 @@ export async function getCategories(req, res) {
     const orderQuery = order ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
 
     try {
-        const result = await db.query(`SELECT * FROM categories ${offsetQuery} ${limitQuery} ${orderQuery};`);
+        const result = await db.query(`SELECT * FROM categories ${orderQuery} ${offsetQuery} ${limitQuery};`);
         res.send(result.rows)
     } catch (e) {
         console.log(e);
