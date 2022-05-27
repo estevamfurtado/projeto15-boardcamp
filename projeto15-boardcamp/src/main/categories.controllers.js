@@ -1,9 +1,13 @@
 import db from '../db.js';
 
-export function validateCategoryBody(req, res, next) {
+export async function validateCategoryBody(req, res, next) {
     const { name } = req.body;
     if (!name || name === "") {
         return res.sendStatus(400);
+    }
+    const result = await db.query(`SELECT * FROM categories WHERE name='${name}'`);
+    if (result.rows.length > 0) {
+        return res.sendStatus(409);
     }
     next();
 }
@@ -22,7 +26,7 @@ export async function postCategory(req, res) {
     const { name } = req.body;
     try {
         const result = await db.query(`INSERT INTO categories (name) VALUES ('${name}')`);
-        res.sendStatus(200);
+        res.sendStatus(201);
     } catch (e) {
         console.log(e);
         res.status(500).send('Não foi possível salvar categoria')
