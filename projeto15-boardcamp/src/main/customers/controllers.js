@@ -2,7 +2,7 @@ import db from '../../db.js';
 import dayjs from 'dayjs';
 
 
-export async function getCostumers(req, res) {
+export async function getcustomers(req, res) {
 
     const { cpf, offset, limit, order, desc } = req.query;
     const offsetQuery = offset ? `OFFSET ${offset}` : '';
@@ -19,7 +19,7 @@ export async function getCostumers(req, res) {
     }
 }
 
-export async function getCostumerById(req, res) {
+export async function getcustomerById(req, res) {
     const { id } = req.params;
     try {
         const result = await db.query(`SELECT * FROM customers WHERE id=${id};`);
@@ -29,7 +29,7 @@ export async function getCostumerById(req, res) {
     }
 }
 
-export async function postCostumer(req, res) {
+export async function postcustomer(req, res) {
     const { name, phone, cpf, birthday } = req.body;
 
     const columns = [
@@ -54,7 +54,7 @@ export async function postCostumer(req, res) {
     }
 }
 
-export async function updateCostumerById(req, res) {
+export async function updatecustomerById(req, res) {
     const { id } = req.params;
     const { name, phone, cpf, birthday } = req.body;
     const values = [

@@ -1,22 +1,22 @@
 import db from '../../db.js';
-import { CostumerSchema } from './schema.js';
+import { customerSchema } from './schema.js';
 
 
 
-export async function validateCostumerBody(req, res, next) {
-    const costumer = req.body;
-    const { error } = CostumerSchema.validate(costumer);
+export async function validatecustomerBody(req, res, next) {
+    const customer = req.body;
+    const { error } = customerSchema.validate(customer);
     if (error) {
         return res.status(400).send({ error: error.details });
     }
     next();
 }
 
-export async function validateCostumerCPF(req, res, next) {
+export async function validatecustomerCPF(req, res, next) {
     try {
-        const costumer = req.body;
+        const customer = req.body;
 
-        const result = await db.query(`SELECT * FROM customers WHERE cpf='${costumer.cpf}'`);
+        const result = await db.query(`SELECT * FROM customers WHERE cpf='${customer.cpf}'`);
         if (result.rows.length > 0) {
             return res.sendStatus(409);
         }
@@ -27,7 +27,7 @@ export async function validateCostumerCPF(req, res, next) {
     }
 }
 
-export async function validateCostumerId(req, res, next) {
+export async function validatecustomerId(req, res, next) {
     try {
         const { id } = req.params;
         const result = await db.query(`SELECT * FROM customers WHERE id=${id};`);

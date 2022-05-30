@@ -14,6 +14,8 @@ const queryStringBuilder = query => Object.keys(query).length ? '?' + Object.key
 const instance = axios.create({
   baseURL: 'http://localhost:4000'
 });
+// 'http://localhost:4000'
+// 'https://boardcamp-driven.herokuapp.com'
 
 for (const method of methods) {
   axiosWrapper[method] = async function (route, body, query = {}, complete = false) {

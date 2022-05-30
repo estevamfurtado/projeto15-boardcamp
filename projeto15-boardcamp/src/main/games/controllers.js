@@ -3,18 +3,18 @@ import db from '../../db.js';
 export async function getGames(req, res) {
 
     const { name, offset, limit, order, desc } = req.query;
+
+    const filterQuery = name ? `WHERE upper(games.name) LIKE '%${name.toUpperCase()}%'` : ``;
     const offsetQuery = offset ? `OFFSET ${offset}` : '';
     const limitQuery = limit ? `LIMIT ${limit}` : '';
-    const orderQuery = order ? `ORDER BY "${limit}" ${desc ? ` DESC ` : ''}` : '';
-
-    const filter = name ? `WHERE upper(name) LIKE '%${name.toUpperCase()}%'` : ``;
+    const orderQuery = order ? `ORDER BY "games.${limit}" ${desc ? ` DESC ` : ''}` : '';
 
     try {
         const query = `
             SELECT games.*, categories.name AS "categoryName"
             FROM games
             JOIN categories ON games."categoryId"=categories.id
-            ${filter} ${orderQuery} ${offsetQuery} ${limitQuery};
+            ${filterQuery} ${orderQuery} ${offsetQuery} ${limitQuery};
         `;
         const result = await db.query(query);
         res.send(result.rows)
@@ -25,14 +25,22 @@ export async function getGames(req, res) {
 
 export async function postGame(req, res) {
     const { name, image, stockTotal, categoryId, pricePerDay } = req.body;
-    const columns = ['name', 'image', '"stockTotal"', '"categoryId"', '"pricePerDay"'].join(', ')
+
+    const columns = [
+        'name',
+        'image',
+        '"stockTotal"',
+        '"categoryId"',
+        '"pricePerDay"'
+    ].join(', ');
+
     const values = [
         `'${name}'`,
         `'${image}'`,
         stockTotal,
         categoryId,
         pricePerDay
-    ].join(', ')
+    ].join(', ');
 
     try {
         const query = `INSERT INTO games (${columns}) VALUES (${values});`

@@ -22,7 +22,7 @@ import NewGame from './pages/NewGame';
 import './assets/styles/reset.css';
 import './assets/styles/style.css';
 
-export default function App () {
+export default function App() {
   return (
     <Router>
       <View>
@@ -69,7 +69,7 @@ export default function App () {
             <NewGame />
           </Route>
         </Switch>
-        
+
         <NewRentalButton />
       </View>
     </Router>

@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-export const CostumerSchema = Joi.object({
+export const customerSchema = Joi.object({
     name: Joi.string().required().messages({
         "name": "Not a valid name",
     }),
